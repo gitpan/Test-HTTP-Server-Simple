@@ -1,6 +1,6 @@
 package Test::HTTP::Server::Simple;
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 use warnings;
 use strict;
@@ -114,8 +114,6 @@ sub started_ok {
     } 
 
     push @CHILD_PIDS, $pid;
-
-    $Tester->diag("Waiting for child to start up...");
 
     1 while not $child_loaded_yet;
 
