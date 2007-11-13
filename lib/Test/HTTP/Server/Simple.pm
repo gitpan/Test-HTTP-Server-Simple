@@ -1,6 +1,6 @@
 package Test::HTTP::Server::Simple;
 
-our $VERSION = '0.05';
+our $VERSION = '0.06';
 
 use warnings;
 use strict;
@@ -83,6 +83,7 @@ END {
     }
     else {
         kill 'USR1', @CHILD_PIDS if @CHILD_PIDS;
+        wait for @CHILD_PIDS;
     }
 } 
 
