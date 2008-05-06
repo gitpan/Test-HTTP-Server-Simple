@@ -1,6 +1,6 @@
 package Test::HTTP::Server::Simple;
 
-our $VERSION = '0.08';
+our $VERSION = '0.09';
 
 use warnings;
 use strict;
@@ -81,6 +81,7 @@ END {
         }
     }
     else {
+        @CHILD_PIDS = grep {kill 0, $_} @CHILD_PIDS;
         while (@CHILD_PIDS) {
             kill 'USR1', @CHILD_PIDS;
             local $SIG{ALRM} = sub {die};
@@ -89,6 +90,7 @@ END {
                 my $pid;
                 @CHILD_PIDS = grep {$_ != $pid} @CHILD_PIDS
                   while $pid = wait and $pid > 0 and @CHILD_PIDS;
+                @CHILD_PIDS = () if $pid == -1;
             };
             alarm(0);
         }
