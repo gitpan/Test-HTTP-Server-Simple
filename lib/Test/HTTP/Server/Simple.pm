@@ -1,6 +1,6 @@
 package Test::HTTP::Server::Simple;
 
-our $VERSION = '0.09';
+our $VERSION = '0.10';
 
 use warnings;
 use strict;
@@ -67,7 +67,11 @@ my @CHILD_PIDS;
 # If an interrupt kills perl, END blocks are not run.  This
 # essentially converts interrupts (like CTRL-C) into a standard
 # perl exit (even if we're inside an eval {}).
-$SIG{INT} = sub { warn "INT:$$"; exit };
+$SIG{INT} = sub { exit };
+
+# In case the surrounding 'prove' or similar harness got the SIGINT
+# before we did, and hence STDERR is closed.
+$SIG{PIPE} = 'IGNORE';
 
 END {
     local $?;
@@ -82,9 +86,15 @@ END {
     }
     else {
         @CHILD_PIDS = grep {kill 0, $_} @CHILD_PIDS;
-        while (@CHILD_PIDS) {
+        if (@CHILD_PIDS) {
             kill 'USR1', @CHILD_PIDS;
-            local $SIG{ALRM} = sub {die};
+            local $SIG{ALRM} = sub {
+                use POSIX ":sys_wait_h";
+                my @last_chance = grep { waitpid($_, WNOHANG) == -1 }
+                    grep { kill 0, $_ } @CHILD_PIDS;
+                die 'uncleaned Test::HTTP::Server::Simple processes: '.join(',',@last_chance)
+                    if @last_chance;
+            };
             alarm(5);
             eval {
                 my $pid;
@@ -92,6 +102,7 @@ END {
                   while $pid = wait and $pid > 0 and @CHILD_PIDS;
                 @CHILD_PIDS = () if $pid == -1;
             };
+            die $@ if $@;
             alarm(0);
         }
     }
